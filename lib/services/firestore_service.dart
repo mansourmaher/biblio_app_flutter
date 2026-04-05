@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/livre.dart';
 import '../models/membre.dart';
 import '../models/emprunt.dart';
+import '../models/message.dart';
 import '../utils/constants.dart';
+import '../models/evenement.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -177,5 +179,79 @@ class FirestoreService {
                   .map((doc) => Membre.fromMap(doc.data(), doc.id))
                   .toList(),
         );
+  }
+
+  // ── EVENEMENTS ────────────────────────────────────────────
+
+  Stream<List<Evenement>> getEvenements() {
+    return _db
+        .collection(Collections.evenements)
+        .orderBy('date')
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs
+                  .map((doc) => Evenement.fromMap(doc.data(), doc.id))
+                  .toList(),
+        );
+  }
+
+  Future<void> addEvenement(Evenement evenement) async {
+    await _db.collection(Collections.evenements).add(evenement.toMap());
+  }
+
+  Future<void> inscrireEvenement({
+    required String evenementId,
+    required String membreId,
+  }) async {
+    await _db.collection(Collections.evenements).doc(evenementId).update({
+      'inscrits': FieldValue.arrayUnion([membreId]),
+    });
+  }
+
+  Future<void> desinscrireEvenement({
+    required String evenementId,
+    required String membreId,
+  }) async {
+    await _db.collection(Collections.evenements).doc(evenementId).update({
+      'inscrits': FieldValue.arrayRemove([membreId]),
+    });
+  }
+
+  Future<void> deleteEvenement(String id) async {
+    await _db.collection(Collections.evenements).doc(id).delete();
+  }
+
+  // ── MESSAGES ──────────────────────────────────────────────
+
+  // Get community messages (forum)
+  Stream<List<Message>> getMessages(String conversationId) {
+    return _db
+        .collection(Collections.messages)
+        .where('conversationId', isEqualTo: conversationId)
+        .orderBy('dateEnvoi', descending: false)
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs
+                  .map((doc) => Message.fromMap(doc.data(), doc.id))
+                  .toList(),
+        );
+  }
+
+  // Send message
+  Future<void> sendMessage(Message message) async {
+    await _db.collection(Collections.messages).add({
+      'senderId': message.senderId,
+      'senderNom': message.senderNom,
+      'contenu': message.contenu,
+      'dateEnvoi': DateTime.now().toIso8601String(),
+      'conversationId': message.conversationId,
+    });
+  }
+
+  // Delete message
+  Future<void> deleteMessage(String id) async {
+    await _db.collection(Collections.messages).doc(id).delete();
   }
 }

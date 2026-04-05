@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../utils/constants.dart';
+import '../models/membre.dart';
+import 'messagerie/messagerie_screen.dart';
 import 'catalogue/catalogue_screen.dart';
 import 'emprunts/emprunts_screen.dart';
+import 'evenements/evenements_screen.dart';
+import 'admin/admin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,8 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
     const _DashboardTab(),
     const CatalogueScreen(),
     const EmpruntsScreen(),
-    const _PlaceholderTab(icon: Icons.event, label: 'Événements'),
-    const _PlaceholderTab(icon: Icons.chat_bubble_outline, label: 'Messages'),
+    const EvenementsScreen(),
+    const MessagerieScreen(),
     const _ProfileTab(),
   ];
 
@@ -50,9 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Emprunts',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bookmark_outline),
-            selectedIcon: Icon(Icons.bookmark, color: AppColors.primary),
-            label: 'Emprunts',
+            icon: Icon(Icons.event_outlined),
+            selectedIcon: Icon(Icons.event, color: AppColors.primary),
+            label: 'Événements',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
@@ -82,7 +86,6 @@ class _DashboardTab extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // Header
           SliverAppBar(
             expandedHeight: 180,
             floating: false,
@@ -124,14 +127,12 @@ class _DashboardTab extends StatelessWidget {
               ),
             ),
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Stats Cards
                   Row(
                     children: [
                       _StatCard(
@@ -157,8 +158,6 @@ class _DashboardTab extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 28),
-
-                  // Quick Actions
                   const Text(
                     'Actions rapides',
                     style: TextStyle(
@@ -194,14 +193,12 @@ class _DashboardTab extends StatelessWidget {
                       _QuickAction(
                         icon: Icons.event,
                         label: 'Événements',
-                        color: Colors.purple,
+                        color: AppColors.primary,
                         onTap: () {},
                       ),
                     ],
                   ),
                   const SizedBox(height: 28),
-
-                  // Recent Books placeholder
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -225,9 +222,9 @@ class _DashboardTab extends StatelessWidget {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: 5,
-                      itemBuilder: (context, index) {
-                        return _BookPlaceholderCard(index: index);
-                      },
+                      itemBuilder:
+                          (context, index) =>
+                              _BookPlaceholderCard(index: index),
                     ),
                   ),
                 ],
@@ -235,6 +232,131 @@ class _DashboardTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Profile Tab ───────────────────────────────────────────
+class _ProfileTab extends StatelessWidget {
+  const _ProfileTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final membre = context.watch<AuthController>().membre;
+    final authController = context.read<AuthController>();
+    final isAdmin = membre?.role == RoleMembre.admin;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Mon Profil'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  membre?.nom.isNotEmpty == true
+                      ? membre!.nom[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                membre?.nom ?? '',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                membre?.email ?? '',
+                style: const TextStyle(color: AppColors.textLight),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  membre?.role.name.toUpperCase() ?? '',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Admin button
+              if (isAdmin) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminScreen(),
+                          ),
+                        ),
+                    icon: const Icon(Icons.admin_panel_settings),
+                    label: const Text('Tableau de bord Admin'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Logout
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () => authController.logout(),
+                  icon: const Icon(Icons.logout, color: AppColors.error),
+                  label: const Text(
+                    'Se déconnecter',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.error),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -348,7 +470,6 @@ class _BookPlaceholderCard extends StatelessWidget {
     Color(0xFF6A1B9A),
     Color(0xFFC62828),
   ];
-
   static const List<String> titles = [
     'Le Petit Prince',
     'L\'Étranger',
@@ -356,7 +477,6 @@ class _BookPlaceholderCard extends StatelessWidget {
     'Les Misérables',
     'Candide',
   ];
-
   static const List<String> authors = [
     'Saint-Exupéry',
     'Albert Camus',
@@ -421,129 +541,6 @@ class _BookPlaceholderCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Profile Tab ───────────────────────────────────────────
-class _ProfileTab extends StatelessWidget {
-  const _ProfileTab();
-
-  @override
-  Widget build(BuildContext context) {
-    final membre = context.watch<AuthController>().membre;
-    final authController = context.read<AuthController>();
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Avatar
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  membre?.nom.isNotEmpty == true
-                      ? membre!.nom[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                    fontSize: 36,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                membre?.nom ?? '',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                membre?.email ?? '',
-                style: const TextStyle(color: AppColors.textLight),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  membre?.role.name.toUpperCase() ?? '',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              // Logout
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  onPressed: () => authController.logout(),
-                  icon: const Icon(Icons.logout, color: AppColors.error),
-                  label: const Text(
-                    'Se déconnecter',
-                    style: TextStyle(color: AppColors.error),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.error),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Placeholder Tab ───────────────────────────────────────
-class _PlaceholderTab extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PlaceholderTab({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 64, color: AppColors.primary.withOpacity(0.4)),
-            const SizedBox(height: 16),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 20, color: AppColors.textLight),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Bientôt disponible...',
-              style: TextStyle(color: AppColors.textLight),
-            ),
-          ],
-        ),
       ),
     );
   }
